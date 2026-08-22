@@ -10,19 +10,19 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Твой ID канала в Дискорде
+# Discord Channel ID
 CHARACTER_CHANNEL_ID = 1540753599020408872
 
-# ID роли для пинга (уже встроен в код)
+# Discord Role ID for pinging
 PING_ROLE_ID = 1540866902451036230
 
-# Класс для интерактивной URL-кнопки под сообщением
+# Interactive URL Button Component
 class ZoneGuideView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None) # Кнопка работает вечно, без таймаута
-        # Добавляем кнопку-ссылку, которая открывает плеер YouTube прямо в Discord
+        super().__init__(timeout=None) # Persistent view, buttons never expire
+        # URL link button that opens the YouTube video embed directly inside Discord
         self.add_item(discord.ui.Button(
-            label="Смотреть видео-гайд", 
+            label="Watch Video Guide", 
             style=discord.ButtonStyle.link, 
             url="https://youtube.com",
             emoji="🌿"
@@ -34,64 +34,64 @@ async def zone_manager():
     channel = bot.get_channel(CHARACTER_CHANNEL_ID)
     
     if not channel:
-        print("Ошибка: Не удалось найти текстовый канал. Проверьте ID.")
+        print("Error: Could not find the text channel. Check your ID.")
         return
 
     while True:
-        # Текст уведомления с пингом роли над карточкой
-        ping_text = f"<@&{PING_ROLE_ID}>\n⚠️ **Внимание, культиваторы! Место спавна Qi-зоны изменилось!**"
+        # Alert ping content above the embed card
+        ping_text = f"<@&{PING_ROLE_ID}>\n⚠️ **Attention Cultivators! The Qi Zone spawn location has shifted!**"
         
-        # Карточка оповещения о спавне зоны (Зеленая полоска)
+        # Global Zone Spawned Embed (Green Side Banner)
         spawn_embed = discord.Embed(
             title="🟢 GLOBAL ZONE SPAWNED! 🟢",
-            description="Attention Cultivators! A new safe zone has appeared on active game servers. It has randomly spawned at one of the 3 locations below.\n\n*Если вы забыли точный маршрут к локациям, нажмите на кнопку под этим сообщением — видеогид откроется прямо в интерфейсе Discord!*",
+            description="A new safe zone has appeared on active game servers. It has randomly spawned at one of the 3 locations listed below.\n\n*If you forgot the exact route to any location, click the button below — the video guide will open directly inside Discord!*",
             color=discord.Color.green()
         )
         spawn_embed.add_field(
-            name="🧭 1. Stone Bridge (Первая зона)", 
-            value="⏱️ Таймкод: `0:56` | Находится недалеко от базы праведников (**Righteous Base**).", 
+            name="🧭 1. Stone Bridge (Zone One)", 
+            value="⏱️ Video Timestamp: `0:56` | Located near the **Righteous Base**.", 
             inline=False
         )
         spawn_embed.add_field(
-            name="🧭 2. Hidden Cave (Вторая зона)", 
-            value="⏱️ Таймкод: `2:05` | Скрытая пещера, расположена между фракциями (**Righteous & Demonic Side**).", 
+            name="🧭 2. Hidden Cave (Zone Two)", 
+            value="⏱️ Video Timestamp: `2:05` | A hidden cave located right between the **Righteous & Demonic Side**.", 
             inline=False
         )
         spawn_embed.add_field(
-            name="🧭 3. Convergence (Третья зона)", 
-            value="⏱️ Таймкод: `3:55` | Находится прямо возле базы демонов (**Demonic Base**).", 
+            name="🧭 3. Convergence (Zone Three)", 
+            value="⏱️ Video Timestamp: `3:55` | Located directly near the **Demonic Base**.", 
             inline=False
         )
         spawn_embed.set_footer(text="Check these spots immediately! The zone will collapse in exactly 80 minutes.")
         
-        # Отправляем сообщение: пинг роли + эмбед + интерактивная кнопка-ссылка
+        # Sending the alert message package
         await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
-        print("Автономное уведомление с кнопкой-ссылкой успешно отправлено!")
+        print("Autonomous zone spawn alert with URL button successfully sent!")
         
-        # Таймер зоны (80 минут = 4800 секунд)
+        # 80-minute countdown timer (80 * 60 = 4800 seconds)
         await asyncio.sleep(4800)
         
-        # Карточка закрытия зоны (Красная полоска)
+        # Global Zone Collapsed Embed (Red Side Banner)
         despawn_embed = discord.Embed(
             title="🔴 ZONE COLLAPSED 🔴",
             description="The active safe zone has closed and disappeared. Calculating the next breakthrough shift...",
             color=discord.Color.red()
         )
         await channel.send(embed=despawn_embed)
-        print("Уведомление о закрытии зоны отправлено.")
+        print("Zone collapse notification successfully sent.")
         
-        # Короткая пауза перед повторным запуском цикла (5 секунд)
+        # Short loop safety buffer before restarting the cycle (5 seconds)
         await asyncio.sleep(5)
 
 @bot.event
 async def on_ready():
-    # Регистрируем кнопку в памяти бота при перезапуске
+    # Registering the persistent view into the bot cache upon reboot
     bot.add_view(ZoneGuideView())
     print(f"Bot {bot.user} is successfully running the Interactive Roblox Zone Manager!")
     if not zone_manager.is_running():
         zone_manager.start()
 
-# --- МИНИ ВЕБ-СЕРВЕР ДЛЯ ОБМАНА RENDER ---
+# --- WEB SERVER BYPASS FOR RENDER COMPLIANCE ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -105,7 +105,7 @@ def run_health_check():
     server.serve_forever()
 
 threading.Thread(target=run_health_check, daemon=True).start()
-# ----------------------------------------
+# -----------------------------------------------
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
 
