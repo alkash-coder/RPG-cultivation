@@ -60,4 +60,6 @@ async def on_ready():
     zone_manager.start()
 
 # ⚠️ ВСТАВЬТЕ СЮДА ВАШ СЕКРЕТНЫЙ ТОКЕН БОТА
-bot.run("MTU0MDc3ODk1NzI0OTU3NzA2MA.GiHtg1.iD9-08ZeIZcd0jzjj2KLhhRTPb7pbirAoUarhM")
+import os
+bot.run(os.environ.get("DISCORD_TOKEN"))
+
