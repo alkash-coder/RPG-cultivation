@@ -18,7 +18,7 @@ LOCATIONS = [
 @tasks.loop(seconds=1)
 async def zone_manager():
     # ⚠️ ВСТАВЬТЕ СЮДА ВАШ ID ТЕКСТОВОГО КАНАЛА ДИСКОРДА
-    CHANNEL_ID = 1234567890123456789 
+    CHANNEL_ID = 1540753599020408872 
     channel = bot.get_channel(CHANNEL_ID)
     
     if not channel:
