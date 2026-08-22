@@ -2,13 +2,18 @@ import discord
 from discord.ext import commands, tasks
 import random
 import asyncio
+import os
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 3 ИГРОВЫЕ ЛОКАЦИИ ИЗ ВАШЕГО СКРИНШОТА
+# Переменная для ID канала
+CHANNEL_ID = 1540753599020408872
+
 LOCATIONS = [
     {"name": "Convergence (Alpha)", "compass": "245° W", "req": "Golden Core"},
     {"name": "Convergence (Bravo)", "compass": "115° E", "req": "Golden Core"},
@@ -17,18 +22,16 @@ LOCATIONS = [
 
 @tasks.loop(seconds=1)
 async def zone_manager():
-    # ⚠️ ВСТАВЬТЕ СЮДА ВАШ ID ТЕКСТОВОГО КАНАЛА ДИСКОРДА
-    CHANNEL_ID = 1540753599020408872 
+    await bot.wait_until_ready()
     channel = bot.get_channel(CHANNEL_ID)
     
     if not channel:
+        print("Ошибка: Не удалось найти канал. Проверьте ID.")
         return
 
     while True:
-        # 1. Случайный выбор одной из 3-х точек
         current_zone = random.choice(LOCATIONS)
         
-        # 2. Карточка о появлении зоны (Зеленая полоска, как ваша зона в игре)
         spawn_embed = discord.Embed(
             title="🟢 NEW ZONE SPAWNED! 🟢",
             description=f"A new safe zone has appeared at the location: **{current_zone['name']}**",
@@ -39,11 +42,11 @@ async def zone_manager():
         spawn_embed.set_footer(text="This zone will disappear in exactly 80 minutes!")
         
         await channel.send(embed=spawn_embed)
+        print(f"Зона отправлена: {current_zone['name']}")
         
-        # 3. Таймер удержания зоны (80 минут * 60 секунд = 4800 секунд)
+        # Таймер зоны (4800 секунд = 80 минут)
         await asyncio.sleep(4800)
         
-        # 4. Карточка об исчезновении зоны (Красная полоска)
         despawn_embed = discord.Embed(
             title="🔴 ZONE COLLAPSED 🔴",
             description=f"The safe zone at **{current_zone['name']}** has closed. Preparing for the next shift...",
@@ -51,15 +54,31 @@ async def zone_manager():
         )
         await channel.send(embed=despawn_embed)
         
-        # Пауза в 5 секунд перед моментальным спавном новой зоны
         await asyncio.sleep(5)
 
 @bot.event
 async def on_ready():
     print(f"Bot {bot.user} is successfully running the Roblox Zone Manager!")
-    zone_manager.start()
+    if not zone_manager.is_running():
+        zone_manager.start()
 
-# ⚠️ ВСТАВЬТЕ СЮДА ВАШ СЕКРЕТНЫЙ ТОКЕН БОТА
-import os
+# --- МИНИ ВЕБ-СЕРВЕР ДЛЯ ОБМАНА RENDER ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is alive!")
+
+def run_health_check():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    print(f"Фиктивный веб-сервер запущен на порту {port}")
+    server.serve_forever()
+
+# Запускаем веб-сервер в отдельном потоке, чтобы он не мешал боту
+threading.Thread(target=run_health_check, daemon=True).start()
+# ----------------------------------------
+
 bot.run(os.environ.get("DISCORD_TOKEN"))
 
