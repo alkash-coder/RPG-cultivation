@@ -37,16 +37,17 @@ async def zone_manager():
         print("Error: Could not find the text channel. Check your ID.")
         return
 
-    # Флаг, чтобы бот не спамил несколько раз в течение одной и той же минуты
-    already_sent = False
+    # Запоминаем текущий час при запуске бота, чтобы он не спамил сразу, 
+    # а дождался именно начала следующего ровного часа
+    last_sent_hour = datetime.utcnow().hour
 
     while True:
-        # Получаем текущую минуту (по времени сервера)
-        # Так как нам нужен просто ровный час, минуты везде наступают одновременно!
-        current_minute = datetime.utcnow().minute
+        now = datetime.utcnow()
+        current_hour = now.hour
+        current_minute = now.minute
 
-        # Если наступило ровно 00 минут часа и мы еще не отправляли сообщение
-        if current_minute == 0 and not already_sent:
+        # Если наступила 00 минута И этот час отличается от того, в котором мы уже отправляли сообщение
+        if current_minute == 0 and current_hour != last_sent_hour:
             ping_text = f"<@&{PING_ROLE_ID}>\n⚠️ **Attention Cultivators! The Qi Zone spawn location has shifted!**"
             
             spawn_embed = discord.Embed(
@@ -60,15 +61,13 @@ async def zone_manager():
             spawn_embed.set_footer(text="Check these spots immediately! The zone will collapse in exactly 60 minutes.")
             
             await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
-            print("Сообщение о новой зоне успешно отправлено в начале часа!")
-            already_sent = True
+            print(f"Сообщение успешно отправлено в начале часа: {current_hour}:00 UTC")
             
-        # Как только 00 минут прошли (наступила 01 минута), сбрасываем флаг для следующего часа
-        if current_minute != 0:
-            already_sent = False
-
-        # Проверяем время каждые 10 секунд, чтобы не тратить ресурсы
-        await asyncio.sleep(10)
+            # Фиксируем, что для этого часа мы сообщение УЖЕ отправили
+            last_sent_hour = current_hour
+            
+        # Проверяем время каждые 5 секунд. Это супер-точно и не пропустит 00 минут.
+        await asyncio.sleep(5)
 
 @bot.event
 async def on_ready():
