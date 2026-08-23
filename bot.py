@@ -1,26 +1,22 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 import asyncio
 import os
+import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
-from datetime import datetime, timedelta
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Discord Channel ID
 CHARACTER_CHANNEL_ID = 1540753599020408872
-
-# Discord Role ID for pinging
 PING_ROLE_ID = 1540866902451036230
 
-# Interactive URL Button Component
 class ZoneGuideView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None) # Persistent view, buttons never expire
+        super().__init__(timeout=None)
         self.add_item(discord.ui.Button(
             label="Watch Video Guide", 
             style=discord.ButtonStyle.link, 
@@ -28,87 +24,43 @@ class ZoneGuideView(discord.ui.View):
             emoji="🌿"
         ))
 
-@tasks.loop(seconds=1)
-async def zone_manager():
+# Функция, которая отправляет сообщение ОДИН РАЗ по команде сервера
+async def send_zone_alert():
     await bot.wait_until_ready()
     channel = bot.get_channel(CHARACTER_CHANNEL_ID)
-    
-    if not channel:
-        print("Error: Could not find the text channel. Check your ID.")
-        return
-
-    # --- ИДЕАЛЬНАЯ СИНХРОНИЗАЦИЯ ПО ТВОЕМУ ВРЕМЕНИ (UTC+4) ---
-    # Получаем мировое время и прибавляем 4 часа, чтобы получить твое точное время
-    user_tz_now = datetime.utcnow() + timedelta(hours=4)
-    
-    # Считаем, сколько минут и секунд осталось до наступления следующего ровного часа
-    next_hour = (user_tz_now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-    wait_seconds = (next_hour - user_tz_now).total_seconds()
-    
-    print(f"Синхронизация часового пояса: до ровного часа осталось ждать {wait_seconds} секунд...")
-    await asyncio.sleep(wait_seconds)
-    # --------------------------------------------------------
-
-    while True:
-        # Alert ping content above the embed card
+    if channel:
         ping_text = f"<@&{PING_ROLE_ID}>\n⚠️ **Attention Cultivators! The Qi Zone spawn location has shifted!**"
-        
-        # Global Zone Spawned Embed (Green Side Banner)
         spawn_embed = discord.Embed(
             title="🟢 GLOBAL ZONE SPAWNED! 🟢",
             description="A new safe zone has appeared on active game servers. It has randomly spawned at one of the 3 locations listed below.\n\n*If you forgot the exact route to any location, click the button below — the video guide will open directly inside Discord!*",
             color=discord.Color.green()
         )
-        spawn_embed.add_field(
-            name="🧭 1. Stone Bridge (Zone One)", 
-            value="⏱️ Video Timestamp: `0:56` | Located near the **Righteous Base**.", 
-            inline=False
-        )
-        spawn_embed.add_field(
-            name="🧭 2. Hidden Cave (Zone Two)", 
-            value="⏱️ Video Timestamp: `2:05` | A hidden cave located right between the **Righteous & Demonic Side**.", 
-            inline=False
-        )
-        spawn_embed.add_field(
-            name="🧭 3. Convergence (Zone Three)", 
-            value="⏱️ Video Timestamp: `3:55` | Located directly near the **Demonic Base**.", 
-            inline=False
-        )
+        spawn_embed.add_field(name="🧭 1. Stone Bridge (Zone One)", value="⏱️ Video Timestamp: `0:56` | Located near the **Righteous Base**.", inline=False)
+        spawn_embed.add_field(name="🧭 2. Hidden Cave (Zone Two)", value="⏱️ Video Timestamp: `2:05` | A hidden cave located right between the **Righteous & Demonic Side**.", inline=False)
+        spawn_embed.add_field(name="🧭 3. Convergence (Zone Three)", value="⏱️ Video Timestamp: `3:55` | Located directly near the **Demonic Base**.", inline=False)
         spawn_embed.set_footer(text="Check these spots immediately! The zone will collapse in exactly 60 minutes.")
         
-        # Sending the alert message package
         await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
-        print("Autonomous zone spawn alert successfully sent at the top of the hour!")
-        
-        # Ждем ровно 60 минут до следующего ровного часа (3600 секунд)
-        await asyncio.sleep(3600)
-        
-        # Global Zone Collapsed Embed (Red Side Banner)
-        despawn_embed = discord.Embed(
-            title="🔴 ZONE COLLAPSED 🔴",
-            description="The active safe zone has closed and disappeared. Preparing for the next breakthrough shift...",
-            color=discord.Color.red()
-        )
-        await channel.send(embed=despawn_embed)
-        print("Zone collapse notification successfully sent.")
-        
-        # Короткая пауза для стабильности цикла (5 секунд)
-        await asyncio.sleep(5)
+        print("Сообщение успешно отправлено по сигналу Cron!")
 
 @bot.event
 async def on_ready():
     bot.add_view(ZoneGuideView())
-    print(f"Bot {bot.user} is successfully running the Clock-Synced Roblox Zone Manager!")
-    if not zone_manager.is_running():
-        zone_manager.start()
+    print(f"Bot {bot.user} is active.")
+    
+    # Если сервер передал команду "trigger", отправляем сообщение и сразу выключаем эту задачу
+    if len(sys.argv) > 1 and sys.argv[1] == "trigger":
+        await send_zone_alert()
+        # Даем 5 секунд на отправку и закрываем скрипт-триггер
+        await asyncio.sleep(5)
+        sys.exit(0)
 
-# --- WEB SERVER BYPASS FOR RENDER COMPLIANCE ---
+# --- МИНИ СЕРВЕР ДЛЯ ВЕЧНОГО ОНЛАЙНА ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
-        self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(b"Bot is alive and bypasses render checks!")
+        self.wfile.write(b"OK")
 
 def run_health_check():
     port = int(os.environ.get("PORT", 10000))
@@ -116,6 +68,6 @@ def run_health_check():
     server.serve_forever()
 
 threading.Thread(target=run_health_check, daemon=True).start()
-# -----------------------------------------------
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
+
