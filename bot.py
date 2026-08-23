@@ -62,14 +62,14 @@ async def zone_manager():
             value="⏱️ Video Timestamp: `3:55` | Located directly near the **Demonic Base**.", 
             inline=False
         )
-        spawn_embed.set_footer(text="Check these spots immediately! The zone will collapse in exactly 80 minutes.")
+        spawn_embed.set_footer(text="Check these spots immediately! The zone will collapse in exactly 60 minutes.")
         
         # Sending the alert message package
         await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
         print("Autonomous zone spawn alert with URL button successfully sent!")
         
-        # 80-minute countdown timer (80 * 60 = 4800 seconds)
-        await asyncio.sleep(4800)
+        # 60-minute countdown timer (60 * 60 = 3600 seconds)
+        await asyncio.sleep(3600)
         
         # Global Zone Collapsed Embed (Red Side Banner)
         despawn_embed = discord.Embed(
@@ -108,4 +108,3 @@ threading.Thread(target=run_health_check, daemon=True).start()
 # -----------------------------------------------
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
-
