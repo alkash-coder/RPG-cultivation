@@ -4,7 +4,6 @@ import asyncio
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
-from datetime import datetime, timedelta
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -37,16 +36,6 @@ async def zone_manager():
         print("Error: Could not find the text channel. Check your ID.")
         return
 
-    # --- СИНХРОНИЗАЦИЯ С РОВНЫМ ЧАСОМ ---
-    now = datetime.utcnow()
-    # Вычисляем, сколько минут и секунд осталось до следующего ровного часа
-    next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-    wait_seconds = (next_hour - now).total_seconds()
-    
-    print(f"Синхронизация: до ровного часа осталось ждать {wait_seconds} секунд...")
-    await asyncio.sleep(wait_seconds)
-    # -------------------------------------
-
     while True:
         # Alert ping content above the embed card
         ping_text = f"<@&{PING_ROLE_ID}>\n⚠️ **Attention Cultivators! The Qi Zone spawn location has shifted!**"
@@ -76,7 +65,7 @@ async def zone_manager():
         
         # Sending the alert message package
         await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
-        print("Autonomous zone spawn alert with URL button successfully sent!")
+        print("Autonomous zone spawn alert successfully sent!")
         
         # Ждем ровно 60 минут до следующего часа (3600 секунд)
         await asyncio.sleep(3600)
@@ -84,19 +73,19 @@ async def zone_manager():
         # Global Zone Collapsed Embed (Red Side Banner)
         despawn_embed = discord.Embed(
             title="🔴 ZONE COLLAPSED 🔴",
-            description="The active safe zone has closed and disappeared. Calculating the next breakthrough shift...",
+            description="The active safe zone has closed and disappeared. Preparing for the next breakthrough shift...",
             color=discord.Color.red()
         )
         await channel.send(embed=despawn_embed)
         print("Zone collapse notification successfully sent.")
         
-        # Небольшая пауза для стабильности цикла перед следующим часом
+        # Короткая пауза перед повтором цикла
         await asyncio.sleep(5)
 
 @bot.event
 async def on_ready():
     bot.add_view(ZoneGuideView())
-    print(f"Bot {bot.user} is successfully running the Clock-Synced Roblox Zone Manager!")
+    print(f"Bot {bot.user} is successfully running the Roblox Zone Manager!")
     if not zone_manager.is_running():
         zone_manager.start()
 
@@ -117,4 +106,3 @@ threading.Thread(target=run_health_check, daemon=True).start()
 # -----------------------------------------------
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
-
