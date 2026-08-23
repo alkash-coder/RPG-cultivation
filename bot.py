@@ -4,6 +4,7 @@ import asyncio
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
+from datetime import datetime, timedelta
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -20,7 +21,6 @@ PING_ROLE_ID = 1540866902451036230
 class ZoneGuideView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None) # Persistent view, buttons never expire
-        # URL link button that opens the YouTube video embed directly inside Discord
         self.add_item(discord.ui.Button(
             label="Watch Video Guide", 
             style=discord.ButtonStyle.link, 
@@ -36,6 +36,16 @@ async def zone_manager():
     if not channel:
         print("Error: Could not find the text channel. Check your ID.")
         return
+
+    # --- СИНХРОНИЗАЦИЯ С РОВНЫМ ЧАСОМ ---
+    now = datetime.utcnow()
+    # Вычисляем, сколько минут и секунд осталось до следующего ровного часа
+    next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+    wait_seconds = (next_hour - now).total_seconds()
+    
+    print(f"Синхронизация: до ровного часа осталось ждать {wait_seconds} секунд...")
+    await asyncio.sleep(wait_seconds)
+    # -------------------------------------
 
     while True:
         # Alert ping content above the embed card
@@ -68,7 +78,7 @@ async def zone_manager():
         await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
         print("Autonomous zone spawn alert with URL button successfully sent!")
         
-        # 60-minute countdown timer (60 * 60 = 3600 seconds)
+        # Ждем ровно 60 минут до следующего часа (3600 секунд)
         await asyncio.sleep(3600)
         
         # Global Zone Collapsed Embed (Red Side Banner)
@@ -80,14 +90,13 @@ async def zone_manager():
         await channel.send(embed=despawn_embed)
         print("Zone collapse notification successfully sent.")
         
-        # Short loop safety buffer before restarting the cycle (5 seconds)
+        # Небольшая пауза для стабильности цикла перед следующим часом
         await asyncio.sleep(5)
 
 @bot.event
 async def on_ready():
-    # Registering the persistent view into the bot cache upon reboot
     bot.add_view(ZoneGuideView())
-    print(f"Bot {bot.user} is successfully running the Interactive Roblox Zone Manager!")
+    print(f"Bot {bot.user} is successfully running the Clock-Synced Roblox Zone Manager!")
     if not zone_manager.is_running():
         zone_manager.start()
 
@@ -108,3 +117,4 @@ threading.Thread(target=run_health_check, daemon=True).start()
 # -----------------------------------------------
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
+
