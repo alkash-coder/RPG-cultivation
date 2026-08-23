@@ -61,14 +61,14 @@ async def zone_manager():
             value="⏱️ Video Timestamp: `3:55` | Located directly near the **Demonic Base**.", 
             inline=False
         )
-        spawn_embed.set_footer(text="Check these spots immediately! The zone will collapse in exactly 60 minutes.")
+        spawn_embed.set_footer(text="TEST MODE: This zone will collapse in exactly 30 seconds.")
         
         # Sending the alert message package
         await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
-        print("Autonomous zone spawn alert successfully sent!")
+        print("TEST: Zone spawn alert successfully sent!")
         
-        # Ждем ровно 60 минут до следующего часа (3600 секунд)
-        await asyncio.sleep(3600)
+        # ТЕСТОВЫЙ ТАЙМЕР НА 30 СЕКУНД (вместо 3600)
+        await asyncio.sleep(30)
         
         # Global Zone Collapsed Embed (Red Side Banner)
         despawn_embed = discord.Embed(
@@ -77,15 +77,15 @@ async def zone_manager():
             color=discord.Color.red()
         )
         await channel.send(embed=despawn_embed)
-        print("Zone collapse notification successfully sent.")
+        print("TEST: Zone collapse notification successfully sent.")
         
-        # Короткая пауза перед повтором цикла
+        # Короткая пауза перед повтором цикла (5 секунд)
         await asyncio.sleep(5)
 
 @bot.event
 async def on_ready():
     bot.add_view(ZoneGuideView())
-    print(f"Bot {bot.user} is successfully running the Roblox Zone Manager!")
+    print(f"Bot {bot.user} is successfully running the 30-Second Test Zone Manager!")
     if not zone_manager.is_running():
         zone_manager.start()
 
