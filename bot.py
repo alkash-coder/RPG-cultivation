@@ -31,7 +31,7 @@ class ZoneGuideView(discord.ui.View):
             emoji="🌿"
         ))
 
-# Официальный цикл discord.py — проверяет время каждые 30 секунд и не дает Render уснуть
+# Официальный цикл discord.py — проверяет время каждые 30 секунд
 @tasks.loop(seconds=30)
 async def clock_checker():
     global last_sent_hour
@@ -71,16 +71,17 @@ async def on_ready():
     bot.add_view(ZoneGuideView())
     print(f"Bot {bot.user} is successfully running. Starting tasks.loop...")
     
-    # Запускаем официальный таймер Дискорда, если он еще не запущен
     if not clock_checker.is_running():
         clock_checker.start()
 
-# --- WEB SERVER BYPASS FOR RENDER COMPLIANCE ---
+# --- ПРАВИЛЬНЫЙ ВЕБ-СЕРВЕР ДЛЯ ОТВЕТА UPTIMEROBOT ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        # Отправляем статус 200 OK, чтобы UptimeRobot видел, что сервер ЖИВ
         self.send_response(200)
+        self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(b"OK")
+        self.wfile.write(b"OK - Bot is Alive")
 
 def run_health_check():
     port = int(os.environ.get("PORT", 10000))
