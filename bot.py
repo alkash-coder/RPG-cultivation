@@ -2,9 +2,6 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 import os
-import urllib.request
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import threading
 from datetime import datetime
 
 intents = discord.Intents.default()
@@ -66,41 +63,12 @@ async def clock_checker():
         
         last_sent_hour = current_hour
 
-# ВТОРОЙ ЦИКЛ: Каждые 10 минут пингует сам себя, чтобы Render не засыпал
-@tasks.loop(minutes=10)
-async def self_ping():
-    try:
-        # Бот отправляет запрос на свой собственный локальный сервер в облаке
-        urllib.request.urlopen("http://localhost:10000", timeout=5)
-        print("Само-пинг выполнен успешно! Сервер не уснет.")
-    except Exception as e:
-        print(f"Ошибка само-пинга (это нормально при запуске): {e}")
-
 @bot.event
 async def on_ready():
     bot.add_view(ZoneGuideView())
-    print(f"Bot {bot.user} is successfully running on Free Web Service!")
+    print(f"Bot {bot.user} is running on Koyeb Worker!")
     
     if not clock_checker.is_running():
         clock_checker.start()
-        
-    if not self_ping.is_running():
-        self_ping.start()
-
-# --- ВЕБ-СЕРВЕР, КОТОРЫЙ ПРИНИМАЕТ НАШ САМО-ПИНГ ---
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(b"OK - I am waking myself up!")
-
-def run_health_check():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    server.serve_forever()
-
-threading.Thread(target=run_health_check, daemon=True).start()
-# --------------------------------------------------
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
