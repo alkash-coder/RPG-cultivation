@@ -15,11 +15,18 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 CHARACTER_CHANNEL_ID = 1540753599020408872
 PING_ROLE_ID = 1540866902451036230
 
-# Словарь для красивого перевода названий зон из игры
+# Словарь зон
 ZONE_NAMES = {
     "StoneBridge": "🧭 1. Stone Bridge (Zone One)",
     "HiddenCave": "🧭 2. Hidden Cave (Zone Two)",
     "Convergence": "🧭 3. Convergence (Zone Three)"
+}
+
+# Новый словарь требований стадий под каждый множитель от Radj
+STAGE_REQUIREMENTS = {
+    2: "✨ Stage: **Qi Refining**",
+    3: "✨ Stage: **Foundation**",
+    4: "✨ Stage: **Golden Core**"
 }
 
 class ZoneGuideView(discord.ui.View):
@@ -32,7 +39,6 @@ class ZoneGuideView(discord.ui.View):
             emoji="🌿"
         ))
 
-# Функция, которая будет отправлять сообщение, когда прилетает сигнал из Roblox
 async def send_zone_alert(data):
     await bot.wait_until_ready()
     channel = bot.get_channel(CHARACTER_CHANNEL_ID)
@@ -43,8 +49,10 @@ async def send_zone_alert(data):
     raw_zone = data.get("zoneId", "Unknown")
     multiplier = data.get("qiMultiplier", 1)
     
-    # Красиво форматируем имя зоны
     pretty_zone_name = ZONE_NAMES.get(raw_zone, f"🧭 Unknown Zone ({raw_zone})")
+    
+    # Получаем стадию культивации на основе прилетевшего множителя Ци
+    stage_text = STAGE_REQUIREMENTS.get(multiplier, "✨ Stage: **Active Breakthrough**")
 
     ping_text = f"<@&{PING_ROLE_ID}>\n⚠️ **Attention Cultivators! A new Qi Zone has spawned directly from active servers!**"
     
@@ -54,21 +62,18 @@ async def send_zone_alert(data):
         color=discord.Color.green()
     )
     spawn_embed.add_field(name="📍 Active Location", value=f"**{pretty_zone_name}**", inline=False)
-    spawn_embed.add_field(name="✨ Qi Multiplier Boost", value=f"**`x{multiplier} Qi`**", inline=False)
+    spawn_embed.add_field(name="🚀 Qi Multiplier Boost", value=f"**`x{multiplier} Qi`** ({stage_text})", inline=False)
     spawn_embed.set_footer(text="Check this spot immediately! The zone will rotate dynamically.")
     
     await channel.send(content=ping_text, embed=spawn_embed, view=ZoneGuideView())
-    print(f"Уведомление о зоне {raw_zone} успешно отправлено!")
+    print(f"Уведомление о зоне {raw_zone} (x{multiplier}) успешно отправлено!")
 
 # --- ВЕБ-СЕРВЕР ДЛЯ ПРИЕМА ВЕБХУКОВ ИЗ ROBLOX ---
 async def handle_roblox_webhook(request):
     try:
         data = await request.json()
         print(f"Получены данные от Roblox: {data}")
-        
-        # Запускаем отправку сообщения в Дискорд в фоновом режиме бота
         bot.loop.create_task(send_zone_alert(data))
-        
         return web.Response(text="OK", status=200)
     except Exception as e:
         print(f"Ошибка вебхука: {e}")
@@ -88,7 +93,6 @@ async def start_web_server():
 async def on_ready():
     bot.add_view(ZoneGuideView())
     print(f"Бот {bot.user} успешно запущен как умный радар!")
-    # Запускаем веб-сервер прямо внутри процесса бота
     await start_web_server()
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
