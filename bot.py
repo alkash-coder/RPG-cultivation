@@ -35,7 +35,7 @@ class ZoneGuideView(discord.ui.View):
         self.add_item(discord.ui.Button(
             label="Watch Video Guide", 
             style=discord.ButtonStyle.link, 
-            url="https://youtube.com",
+            url="https://www.youtube.com/watch?v=hpvqiS4jqh8",
             emoji="🌿"
         ))
 
